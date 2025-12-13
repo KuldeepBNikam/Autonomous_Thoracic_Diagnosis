@@ -28,6 +28,7 @@ setup(
     version = "0.0.1",
     author = "Kuldeep Nikam",
     author_email= "kuldeepnikam2782@gmail.com",
-    install_requires = get_requirements(),
-    package = find_packages()
-)
+    install_requires = get_requirements(r"F:\CDAC\AutonomousThoracicDiagnosis\requirement_dev.txt"),
+    packages = find_packages(exclude=("experiment", "notebooks", "tests"))
+    
+    )
