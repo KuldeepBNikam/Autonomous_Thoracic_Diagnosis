@@ -3,7 +3,7 @@ from HyperLung_XR.components.data_ingestion import DataIngestion
 from HyperLung_XR.entity.artifact_entity import DataIngestionArtifact
 from HyperLung_XR.entity.config_entity import DataIngestionConfig
 from HyperLung_XR.exception import HyperLungException
-from HyperLung_XR import logging
+from HyperLung_XR.logger import logging
 
 class TrainPipeline:
     def __init__(self):
