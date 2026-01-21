@@ -1,7 +1,7 @@
-import sys
+import sys,os
 
 from HyperLung_XR.cloud_storage.s3_operation import S3operation
-#from HyperLung_XR.constant.training_pipeline import *
+from HyperLung_XR.constant.training_pipeline import *
 from HyperLung_XR.entity.artifact_entity import DataIngestionArtifact
 from HyperLung_XR.entity.config_entity import DataIngestionConfig
 from HyperLung_XR.exception import HyperLungException
@@ -21,7 +21,7 @@ class DataIngestion:
             self.s3.sync_folder_from_s3(
                 folder = self.data_ingestion_config.data_path,
                 bucket_name=self.data_ingestion_config.bucket_name,
-                bucket_folder_name= self.data_ingestion_config.s3_data_folder,
+                bucket_folder_name= os.path.join(self.data_ingestion_config.s3_data_folder),
 
             )
 
@@ -32,17 +32,17 @@ class DataIngestion:
         
     def initiate_data_ingestion(self):
         logging.info("Entered the initiate_data_ingestion method of Data ingestion class")
+
         try:
             self.get_data_from_s3()
 
-            data_ingestion_artifact: DataIngestionArtifact = DataIngestionArtifact(
-                train_file_path= self.data_ingestion_config.train_data_path,
-                test_file_path= self.data_ingestion_config.test_data_path,
+            data_ingestion_artifact = DataIngestionArtifact(
+                train_file_path=self.data_ingestion_config.train_data_path,
+                val_file_path=self.data_ingestion_config.val_data_path,
+                test_file_path=self.data_ingestion_config.test_data_path,
             )
 
-            logging.info(
-                "Exited the initiate_data_ingestion method of Data ingestion class"
-            )
+            logging.info("Exited the initiate_data_ingestion method of Data ingestion class")
 
             return data_ingestion_artifact
 
