@@ -51,6 +51,9 @@ class ModelTrainer:
 
             processed = 0
 
+            class_weights = torch.tensor([1.0, 1.5]).to(self.device)
+
+
             for batch_idx, (data, target) in enumerate(pbar):
                 data, target = data.to(DEVICE), target.to(DEVICE)
 
@@ -64,7 +67,8 @@ class ModelTrainer:
                 y_pred = self.model(data)
 
                 # Calculating loss given the prediction
-                loss = F.cross_entropy(y_pred, target)
+                loss = F.cross_entropy(y_pred, target, weight=class_weights)
+
 
                 # Backprop
                 loss.backward()
@@ -78,9 +82,12 @@ class ModelTrainer:
 
                 processed += len(data)
 
-                pbar.set_description(
-                    desc=f"Loss={loss.item()} Batch_id={batch_idx} Accuracy={100*correct/processed:0.2f}"
-                )
+                pbar.set_postfix(
+                    loss=f"{loss.item():.4f}",
+                    acc=f"{100*correct/processed:.2f}%")
+                
+            self.last_train_accuracy = 100 * correct / processed
+
 
             logging.info("Exited the train method of Model trainer class")
 
@@ -181,19 +188,11 @@ class ModelTrainer:
                 )
 
             logging.info(
-                "Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)".format(
-                    test_loss,
-                    correct,
-                    len(
-                        self.data_transformation_artifact.transformed_test_object.dataset
-                    ),
-                    100.0
-                    * correct
-                    / len(
-                        self.data_transformation_artifact.transformed_test_object.dataset
-                    ),
-                )
+                f"🧪 FINAL TEST RESULTS | "
+                f"Loss: {test_loss:.4f} | "
+                f"Accuracy: {100.0 * correct / len(self.data_transformation_artifact.transformed_test_object.dataset):.2f}%"
             )
+
 
             logging.info("Exited the test method of Model trainer class")
 
@@ -239,11 +238,23 @@ class ModelTrainer:
                         lr=1e-5,
                         weight_decay=1e-4
                     )
+                    scheduler = StepLR(
+                    optimizer=optimizer,
+                    **self.model_trainer_config.scheduler_params)
+
 
                     fine_tuning_started = True
 
                 self.train(optimizer=optimizer)
                 val_accuracy = self.validate()
+
+                logging.info(
+                    f"[EPOCH {epoch}] "
+                    f"Train Acc: {self.last_train_accuracy:.2f}% | "
+                    f"Val Acc: {val_accuracy:.2f}% | "
+                    f"Best Val: {best_val_accuracy:.2f}%"
+                )
+
 
                 if val_accuracy > best_val_accuracy:
                     best_val_accuracy = val_accuracy
@@ -251,13 +262,21 @@ class ModelTrainer:
 
                     os.makedirs(self.model_trainer_config.artifact_dir, exist_ok=True)
                     torch.save(model.state_dict(), self.model_trainer_config.trained_model_path)
-                    print("✅ Best model saved")
+                    logging.info(
+                        f"📌 Model improved → saving checkpoint "
+                        f"(Val Acc: {val_accuracy:.2f}%)"
+                    )
+
 
                 else:
                     patience_counter += 1
 
                 if patience_counter >= patience:
-                    print("🛑 Early stopping")
+                    logging.warning(
+                        f"🛑 Early stopping at epoch {epoch} "
+                        f"(no improvement for {patience} epochs)"
+                    )
+
                     break
 
                 scheduler.step()
@@ -269,8 +288,7 @@ class ModelTrainer:
 
             os.makedirs(self.model_trainer_config.artifact_dir, exist_ok=True)
 
-            torch.save(model.state_dict(), self.model_trainer_config.trained_model_path)
-
+            
 
             train_transforms_obj = joblib.load(
                 self.data_transformation_artifact.train_transform_file_path
