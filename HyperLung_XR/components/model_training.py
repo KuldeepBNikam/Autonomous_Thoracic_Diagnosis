@@ -218,25 +218,53 @@ class ModelTrainer:
                 optimizer=optimizer, **self.model_trainer_config.scheduler_params
             )
             best_val_accuracy = 0.0
+            patience = 3
+            patience_counter = 0
+
+
+            fine_tuning_started = False
+
 
             for epoch in range(1, self.model_trainer_config.epochs + 1):
-                print("Epoch : ", epoch)
+                print(f"\nEpoch {epoch}")
+
+                # 🔓 Start fine-tuning at epoch 7
+                if epoch == 7 and not fine_tuning_started:
+                    print("🔓 Unfreezing top layers for fine-tuning")
+
+                    self.model.unfreeze_top_layers()
+
+                    optimizer = torch.optim.AdamW(
+                        filter(lambda p: p.requires_grad, model.parameters()),
+                        lr=1e-5,
+                        weight_decay=1e-4
+                    )
+
+                    fine_tuning_started = True
 
                 self.train(optimizer=optimizer)
+                val_accuracy = self.validate()
 
-                val_accuracy = self.validate()   # ✅ ADD THIS
+                if val_accuracy > best_val_accuracy:
+                    best_val_accuracy = val_accuracy
+                    patience_counter = 0
+
+                    os.makedirs(self.model_trainer_config.artifact_dir, exist_ok=True)
+                    torch.save(model.state_dict(), self.model_trainer_config.trained_model_path)
+                    print("✅ Best model saved")
+
+                else:
+                    patience_counter += 1
+
+                if patience_counter >= patience:
+                    print("🛑 Early stopping")
+                    break
 
                 scheduler.step()
 
-                if val_accuracy > best_val_accuracy:   # ✅ ADD THIS
-                    best_val_accuracy = val_accuracy
 
-                    os.makedirs(self.model_trainer_config.artifact_dir, exist_ok=True)
-
-                    torch.save(model.state_dict(), self.model_trainer_config.trained_model_path)
-
-
-                self.test()   # unchanged
+            print("Final evaluation on test set")
+            self.test()
 
 
             os.makedirs(self.model_trainer_config.artifact_dir, exist_ok=True)

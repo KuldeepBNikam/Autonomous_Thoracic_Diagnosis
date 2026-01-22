@@ -23,6 +23,14 @@ class HybridCNNTransformer(nn.Module):
         )
         swin_out_features = self.swin.num_features
 
+        # 🔒 Freeze CNN backbone
+        for param in self.cnn.parameters():
+            param.requires_grad = False
+
+        # 🔒 Freeze Swin Transformer backbone
+        for param in self.swin.parameters():
+            param.requires_grad = False
+
         # 🔹 Feature fusion
         self.pool = nn.AdaptiveAvgPool2d(1)
 
@@ -32,6 +40,22 @@ class HybridCNNTransformer(nn.Module):
             nn.Dropout(0.4),
             nn.Linear(256, num_classes)
         )
+
+    def unfreeze_top_layers(self):
+        """
+        Unfreeze high-level layers for fine-tuning
+        """
+
+        # 🔓 Unfreeze last DenseNet block
+        for name, param in self.cnn.named_parameters():
+            if "denseblock4" in name or "norm5" in name:
+                param.requires_grad = True
+
+        # 🔓 Unfreeze last Swin stage
+        for name, param in self.swin.named_parameters():
+            if "layers.3" in name:  # last Swin stage
+                param.requires_grad = True
+
 
     def forward(self, x):
         # CNN path

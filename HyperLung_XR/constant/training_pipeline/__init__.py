@@ -59,11 +59,11 @@ TRAINED_MODEL_NAME: str = "model.pt"
 
 DEVICE: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-STEP_SIZE: int = 6
+STEP_SIZE: int = 4
 
-GAMMA: int = 0.5
+GAMMA: int = 0.3
 
-EPOCH: int = 20
+EPOCH: int = 12
 
 BENTOML_MODEL_NAME: str = "xray_model"
 
