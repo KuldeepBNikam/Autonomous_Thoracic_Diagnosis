@@ -211,13 +211,13 @@ class ModelTrainer:
 
             model: Module = self.model.to(self.model_trainer_config.device)
 
-            optimizer: Optimizer = torch.optim.SGD(
-                model.parameters(), **self.model_trainer_config.optimizer_params
-            )
+            optimizer = AdamW(model.parameters(),lr=3e-4,weight_decay=1e-4)
+
 
             scheduler: _LRScheduler = StepLR(
                 optimizer=optimizer, **self.model_trainer_config.scheduler_params
             )
+            best_val_accuracy = 0.0
 
             for epoch in range(1, self.model_trainer_config.epochs + 1):
                 print("Epoch : ", epoch)
@@ -233,17 +233,16 @@ class ModelTrainer:
 
                     os.makedirs(self.model_trainer_config.artifact_dir, exist_ok=True)
 
-                    torch.save(
-                        model,
-                        self.model_trainer_config.trained_model_path
-                    )
+                    torch.save(model.state_dict(), self.model_trainer_config.trained_model_path)
+
 
                 self.test()   # unchanged
 
 
             os.makedirs(self.model_trainer_config.artifact_dir, exist_ok=True)
 
-            torch.save(model, self.model_trainer_config.trained_model_path)
+            torch.save(model.state_dict(), self.model_trainer_config.trained_model_path)
+
 
             train_transforms_obj = joblib.load(
                 self.data_transformation_artifact.train_transform_file_path
@@ -258,7 +257,9 @@ class ModelTrainer:
             )
 
             model_trainer_artifact: ModelTrainerArtifact = ModelTrainerArtifact(
-                trained_model_path=self.model_trainer_config.trained_model_path
+                trained_model_path=self.model_trainer_config.trained_model_path,
+                class_mapping=PREDICTION_LABEL,
+                device=str(self.device)
             )
 
             logging.info(

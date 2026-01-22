@@ -45,9 +45,9 @@ VAL_TRANSFORMS_FILE: str = "val_transforms.pkl"
 
 TEST_TRANSFORMS_FILE: str = "test_transforms.pkl"
 
-BATCH_SIZE: int = 2
+BATCH_SIZE: int = 32
 
-SHUFFLE: bool = False
+SHUFFLE: bool = True
 
 PIN_MEMORY: bool = False
 
@@ -63,7 +63,7 @@ STEP_SIZE: int = 6
 
 GAMMA: int = 0.5
 
-EPOCH: int = 1
+EPOCH: int = 20
 
 BENTOML_MODEL_NAME: str = "xray_model"
 

@@ -81,7 +81,8 @@ class ModelTrainerConfig:
 
         self.epochs: int = EPOCH
 
-        self.optimizer_params: dict = {"lr": 0.01, "momentum": 0.8}
+        self.optimizer_params: dict = {"lr": 3e-4}
+
 
         self.scheduler_params: dict = {"step_size": STEP_SIZE, "gamma": GAMMA}
 
