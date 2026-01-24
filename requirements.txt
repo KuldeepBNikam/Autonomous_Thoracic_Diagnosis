@@ -4,5 +4,12 @@ joblib
 tqdm
 pip-chill
 wincertstore
+dvc
+mlflow
+ipykernel
+pandas
+numpy
+seaborn
+opencv-python
 
 -e .

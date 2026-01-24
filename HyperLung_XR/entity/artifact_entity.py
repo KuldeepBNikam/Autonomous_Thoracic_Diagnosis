@@ -40,6 +40,7 @@ class ModelTrainerArtifact:
 @dataclass
 class ModelEvaluationArtifact:
     model_accuracy: float
+    model_loss: float
 
 
 
