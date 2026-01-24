@@ -1,10 +1,17 @@
 import io
-
-import bentoml
+import cv2
+import base64
 import numpy as np
 import torch
-from bentoml.io import Image, Text
 from PIL import Image as PILImage
+import bentoml
+
+from bentoml.io import Image, Text, JSON
+
+from HyperLung_XR.explainability.gradcam import GradCAM
+from HyperLung_XR.explainability.utils import overlay_heatmap
+from HyperLung_XR.ml.reporting.medical_report import MedicalReportGenerator
+from HyperLung_XR.ml.reporting.llm_client import LLMClient
 
 from HyperLung_XR.constant.training_pipeline import *
 
@@ -14,25 +21,65 @@ runner = bento_model.to_runner()
 
 svc = bentoml.Service(name=BENTOML_SERVICE_NAME, runners=[runner])
 
+# Initialize Grad-CAM (DenseNet last conv layer)
+model = bento_model.load_model()
+target_layer = model.cnn[-1]
+gradcam = GradCAM(model, target_layer)
 
-@svc.api(input=Image(allowed_mime_types=["image/jpeg"]), output=Text())
+# Initialize LLM
+llm_client = LLMClient(openai_client=None)  # plug real client later
+report_generator = MedicalReportGenerator(llm_client)
+
+
+@svc.api(input=Image(allowed_mime_types=["image/jpeg"]), output=JSON())
 async def predict(img):
-    b = io.BytesIO()
+    # Convert image to bytes
+    buffer = io.BytesIO()
+    img.save(buffer, "jpeg")
+    image_bytes = buffer.getvalue()
 
-    img.save(b, "jpeg")
+    # Load transforms
+    transforms = bento_model.custom_objects.get(TRAIN_TRANSFORMS_KEY)
 
-    im_bytes = b.getvalue()
+    # PIL image
+    image = PILImage.open(io.BytesIO(image_bytes)).convert("RGB")
+    image_tensor = transforms(image).unsqueeze(0).cpu()
 
-    my_transforms = bento_model.custom_objects.get(TRAIN_TRANSFORMS_KEY)
+    # --------------------
+    # MODEL PREDICTION
+    # --------------------
+    output = await runner.async_run(image_tensor)
+    probs = torch.softmax(output, dim=1)
+    confidence, pred_idx = torch.max(probs, dim=1)
 
-    image = PILImage.open(io.BytesIO(im_bytes)).convert("RGB")
+    diagnosis = PREDICTION_LABEL[pred_idx.item()]
+    confidence = round(confidence.item(), 4)
 
-    image = torch.from_numpy(np.array(my_transforms(image).unsqueeze(0)))
+    # --------------------
+    # GRAD-CAM
+    # --------------------
+    cam = gradcam.generate(
+        input_tensor=image_tensor,
+        class_idx=pred_idx.item()
+    )
 
-    image = image.reshape(1, 3, 224, 224)
+    original_np = np.array(image)
+    overlay = overlay_heatmap(original_np, cam)
 
-    batch_ret = await runner.async_run(image)
+    _, buffer = cv2.imencode(".png", overlay)
+    heatmap_base64 = base64.b64encode(buffer).decode("utf-8")
 
-    pred = PREDICTION_LABEL[max(torch.argmax(batch_ret, dim=1).detach().cpu().tolist())]
+    # --------------------
+    # LLM MEDICAL REPORT
+    # --------------------
+    report = report_generator.generate_report({
+        "diagnosis": diagnosis,
+        "confidence": confidence
+    })
 
-    return pred
+    return {
+        "diagnosis": diagnosis,
+        "confidence": confidence,
+        "gradcam": heatmap_base64,
+        "report": report
+    }

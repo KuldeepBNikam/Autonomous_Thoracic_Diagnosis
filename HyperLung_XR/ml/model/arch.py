@@ -7,7 +7,7 @@ class HybridCNNTransformer(nn.Module):
     def __init__(self, num_classes: int = 2):
         super().__init__()
 
-        # 🔹 CNN Backbone (DenseNet – excellent for X-rays)
+        #  CNN Backbone (DenseNet – excellent for X-rays)
         self.cnn = timm.create_model(
             "densenet121",
             pretrained=True,
@@ -15,7 +15,7 @@ class HybridCNNTransformer(nn.Module):
         )
         cnn_out_channels = self.cnn.feature_info[-1]["num_chs"]
 
-        # 🔹 Swin Transformer
+        #  Swin Transformer
         self.swin = timm.create_model(
             "swin_tiny_patch4_window7_224",
             pretrained=True,
@@ -23,15 +23,15 @@ class HybridCNNTransformer(nn.Module):
         )
         swin_out_features = self.swin.num_features
 
-        # 🔒 Freeze CNN backbone
+        #  Freeze CNN backbone
         for param in self.cnn.parameters():
             param.requires_grad = False
 
-        # 🔒 Freeze Swin Transformer backbone
+        #  Freeze Swin Transformer backbone
         for param in self.swin.parameters():
             param.requires_grad = False
 
-        # 🔹 Feature fusion
+        #  Feature fusion
         self.pool = nn.AdaptiveAvgPool2d(1)
 
         self.classifier = nn.Sequential(
@@ -46,12 +46,12 @@ class HybridCNNTransformer(nn.Module):
         Unfreeze high-level layers for fine-tuning
         """
 
-        # 🔓 Unfreeze last DenseNet block
+        #  Unfreeze last DenseNet block
         for name, param in self.cnn.named_parameters():
             if "denseblock4" in name or "norm5" in name:
                 param.requires_grad = True
 
-        # 🔓 Unfreeze last Swin stage
+        #  Unfreeze last Swin stage
         for name, param in self.swin.named_parameters():
             if "layers.3" in name:  # last Swin stage
                 param.requires_grad = True

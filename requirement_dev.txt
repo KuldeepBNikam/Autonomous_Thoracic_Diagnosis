@@ -10,6 +10,7 @@ ipykernel
 pandas
 numpy
 seaborn
+opencv-python
 
 
 pytest==7.4.4

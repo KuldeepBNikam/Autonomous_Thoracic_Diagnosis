@@ -34,3 +34,17 @@ class ModelTrainerArtifact:
     trained_model_path: str
     class_mapping: Dict[int, str]     # {0: "NORMAL", 1: "PNEUMONIA"}
     device: str 
+
+
+
+@dataclass
+class ModelEvaluationArtifact:
+    model_accuracy: float
+
+
+
+@dataclass
+class ModelPusherArtifact:
+    bentoml_model_name: str
+
+    bentoml_service_name: str
