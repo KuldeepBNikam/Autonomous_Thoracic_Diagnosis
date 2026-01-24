@@ -15,6 +15,15 @@ from HyperLung_XR.ml.reporting.llm_client import LLMClient
 
 from HyperLung_XR.constant.training_pipeline import *
 
+import torch.serialization
+from HyperLung_XR.ml.model.arch import HybridCNNTransformer
+
+#  Allow PyTorch to load this trusted class
+torch.serialization.add_safe_globals(
+    [HybridCNNTransformer]
+)
+
+
 bento_model = bentoml.pytorch.get(BENTOML_MODEL_NAME)
 
 runner = bento_model.to_runner()
