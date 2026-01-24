@@ -17,10 +17,14 @@ from HyperLung_XR.constant.training_pipeline import *
 
 import torch.serialization
 from HyperLung_XR.ml.model.arch import HybridCNNTransformer
+from timm.models._features import FeatureListNet
 
-#  Allow PyTorch to load this trusted class
+# Allowlist all trusted model classes
 torch.serialization.add_safe_globals(
-    [HybridCNNTransformer]
+    [
+        HybridCNNTransformer,
+        FeatureListNet
+    ]
 )
 
 
