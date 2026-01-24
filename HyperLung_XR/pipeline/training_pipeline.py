@@ -118,7 +118,8 @@ class TrainPipeline:
         logging.info("Entered the start_model_pusher method of TrainPipeline class")
 
         try:
-            model_pusher = ModelPusher(model_pusher_config=self.model_pusher_config)
+            model_pusher = ModelPusher(model_pusher_config=self.model_pusher_config,
+                                       model_trainer_artifact=model_trainer_artifact)
 
             model_pusher_artifact = model_pusher.initiate_model_pusher()
 
