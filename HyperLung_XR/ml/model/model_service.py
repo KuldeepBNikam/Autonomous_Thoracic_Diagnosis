@@ -15,12 +15,18 @@ from HyperLung_XR.ml.reporting.llm_client import LLMClient
 
 from HyperLung_XR.constant.training_pipeline import *
 from HyperLung_XR.ml.model.arch import HybridCNNTransformer
+import torch
 
 
 bento_model = bentoml.pytorch.get(BENTOML_MODEL_NAME)
 
+# Recreate architecture
 model = HybridCNNTransformer(num_classes=2)
-state_dict = bento_model.load_model()
+
+# Load weights from BentoML custom objects
+state_dict_path = bento_model.custom_objects["state_dict_path"]
+state_dict = torch.load(state_dict_path, map_location="cpu")
+
 model.load_state_dict(state_dict)
 model.eval()
 

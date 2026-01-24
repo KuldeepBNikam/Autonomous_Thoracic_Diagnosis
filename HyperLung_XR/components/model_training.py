@@ -188,7 +188,7 @@ class ModelTrainer:
                 )
 
             logging.info(
-                f"🧪 FINAL TEST RESULTS | "
+                f" FINAL TEST RESULTS | "
                 f"Loss: {test_loss:.4f} | "
                 f"Accuracy: {100.0 * correct / len(self.data_transformation_artifact.transformed_test_object.dataset):.2f}%"
             )
@@ -227,9 +227,9 @@ class ModelTrainer:
             for epoch in range(1, self.model_trainer_config.epochs + 1):
                 print(f"\nEpoch {epoch}")
 
-                # 🔓 Start fine-tuning at epoch 7
+                #  Start fine-tuning at epoch 7
                 if epoch == 7 and not fine_tuning_started:
-                    print("🔓 Unfreezing top layers for fine-tuning")
+                    print(" Unfreezing top layers for fine-tuning")
 
                     self.model.unfreeze_top_layers()
 
@@ -263,7 +263,7 @@ class ModelTrainer:
                     os.makedirs(self.model_trainer_config.artifact_dir, exist_ok=True)
                     torch.save(model.state_dict(), self.model_trainer_config.trained_model_path)
                     logging.info(
-                        f"📌 Model improved → saving checkpoint "
+                        f" Model improved → saving checkpoint "
                         f"(Val Acc: {val_accuracy:.2f}%)"
                     )
 
@@ -273,7 +273,7 @@ class ModelTrainer:
 
                 if patience_counter >= patience:
                     logging.warning(
-                        f"🛑 Early stopping at epoch {epoch} "
+                        f" Early stopping at epoch {epoch} "
                         f"(no improvement for {patience} epochs)"
                     )
 
@@ -289,13 +289,22 @@ class ModelTrainer:
                 self.data_transformation_artifact.train_transform_file_path
             )
 
+            # Save weights only (PyTorch-native)
+            weights_path = os.path.join(
+                self.model_trainer_config.artifact_dir,
+                "model_state_dict.pt"
+            )
+
+            torch.save(model.state_dict(), weights_path)
+
+            # Register weights + transforms in BentoML
             bentoml.pytorch.save_model(
                 name=self.model_trainer_config.trained_bentoml_model_name,
-                model=model,
+                model=None,  # IMPORTANT: no full model
                 custom_objects={
+                    "state_dict_path": weights_path,
                     self.model_trainer_config.train_transforms_key: train_transforms_obj
                 },
-                weights_only=True   
             )
 
             model_trainer_artifact: ModelTrainerArtifact = ModelTrainerArtifact(
