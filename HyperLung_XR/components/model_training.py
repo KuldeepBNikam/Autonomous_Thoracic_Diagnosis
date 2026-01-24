@@ -295,6 +295,7 @@ class ModelTrainer:
                 custom_objects={
                     self.model_trainer_config.train_transforms_key: train_transforms_obj
                 },
+                weights_only=True   
             )
 
             model_trainer_artifact: ModelTrainerArtifact = ModelTrainerArtifact(

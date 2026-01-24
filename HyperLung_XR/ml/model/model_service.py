@@ -14,28 +14,22 @@ from HyperLung_XR.ml.reporting.medical_report import MedicalReportGenerator
 from HyperLung_XR.ml.reporting.llm_client import LLMClient
 
 from HyperLung_XR.constant.training_pipeline import *
-
-import torch.serialization
 from HyperLung_XR.ml.model.arch import HybridCNNTransformer
-from timm.models._features import FeatureListNet
-
-# Allowlist all trusted model classes
-torch.serialization.add_safe_globals(
-    [
-        HybridCNNTransformer,
-        FeatureListNet
-    ]
-)
 
 
 bento_model = bentoml.pytorch.get(BENTOML_MODEL_NAME)
+
+model = HybridCNNTransformer(num_classes=2)
+state_dict = bento_model.load_model()
+model.load_state_dict(state_dict)
+model.eval()
 
 runner = bento_model.to_runner()
 
 svc = bentoml.Service(name=BENTOML_SERVICE_NAME, runners=[runner])
 
 # Initialize Grad-CAM (DenseNet last conv layer)
-model = bento_model.load_model()
+
 target_layer = model.cnn[-1]
 gradcam = GradCAM(model, target_layer)
 
