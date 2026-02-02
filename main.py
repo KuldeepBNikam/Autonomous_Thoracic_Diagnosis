@@ -3,6 +3,7 @@ import sys
 from HyperLung_XR.exception import HyperLungException
 from HyperLung_XR.pipeline.training_pipeline import TrainPipeline
 
+
 def start_training():
     try:
         train_pipeline = TrainPipeline()

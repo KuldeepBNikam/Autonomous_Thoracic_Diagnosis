@@ -1,5 +1,6 @@
 from typing import Dict
 from HyperLung_XR.logger import logging
+from HyperLung_XR.utils.report_cache import save_report
 
 
 class MedicalReportGenerator:
@@ -10,47 +11,100 @@ class MedicalReportGenerator:
         self.llm = llm_client
 
     def generate_report(self, prediction_data: Dict) -> str:
-        """
-        prediction_data example:
-        {
-            "diagnosis": "Pneumonia",
-            "confidence": 0.96
-        }
-        """
-
+        logging.info(" Report generation started")
         prompt = self._build_prompt(prediction_data)
 
-        logging.info("Generating medical report using LLM")
+        try:
+            response = self.llm.generate(prompt)
+            save_report(response)
+            return response
 
-        response = self.llm.generate(prompt)
+        except Exception as e:
+            logging.error(f"LLM failed, retrying once: {e}")
 
-        return response
+            try:
+                #  Retry ONCE after short delay
+                import time
+                time.sleep(2)
+
+                response = self.llm.generate(prompt)
+                logging.info(" Saving report to cache")
+
+                save_report(response)
+                return response
+
+            except Exception:
+                diagnosis = prediction_data["diagnosis"]
+
+                if diagnosis.lower() == "normal":
+                    fallback = (
+                        "Findings\n"
+                        "Lung fields appear clear with no focal consolidation.\n\n"
+                        "Impression\n"
+                        "No radiographic evidence of acute pneumonia.\n\n"
+                        "Severity Assessment\n"
+                        "No significant abnormality detected.\n\n"
+                        "Recommendation\n"
+                        "Routine clinical correlation advised if symptoms persist.\n\n"
+                        "Disclaimer\n"
+                        "This is an AI-generated clinical decision support report."
+                    )
+                else:
+                    fallback = (
+                        "Findings\n"
+                        "Patchy pulmonary opacities may be present.\n\n"
+                        "Impression\n"
+                        "Findings are suggestive but not diagnostic of pneumonia.\n\n"
+                        "Severity Assessment\n"
+                        "Moderate severity based on imaging features.\n\n"
+                        "Recommendation\n"
+                        "Clinical correlation and follow-up advised.\n\n"
+                        "Disclaimer\n"
+                        "This is an AI-generated clinical decision support report."
+                    )
+
+                save_report(fallback)
+                return fallback
+
+
 
     def _build_prompt(self, prediction_data: Dict) -> str:
         diagnosis = prediction_data["diagnosis"]
         confidence = prediction_data["confidence"]
 
+        if confidence >= 0.9:
+            confidence_band = "high confidence"
+        elif confidence >= 0.75:
+            confidence_band = "moderate confidence"
+        else:
+            confidence_band = "low confidence"
+
+        if diagnosis.lower() == "pneumonia":
+            severity_hint = "possible inflammatory or infectious lung involvement"
+        else:
+            severity_hint = "no obvious acute pulmonary abnormality"
+
         prompt = f"""
-            You are an AI clinical assistant supporting a radiologist.
+        Generate a concise chest X-ray report.
 
-            Based on the following AI analysis of a chest X-ray, generate a structured medical report.
+        Finding: {diagnosis}
+        Confidence: {confidence_band} ({confidence:.2f})
 
-            AI Findings:
-            - Predicted condition: {diagnosis}
-            - Confidence score: {confidence:.2f}
+        Context: {severity_hint}
+        Diagnosis Constraint:
+        - If finding is NORMAL, do NOT mention opacities, infiltrates, pneumonia, or pathology.
 
-            Write the report using the following sections ONLY:
-            1. Findings
-            2. Impression
-            3. Severity Assessment
-            4. Recommendation
-            5. Disclaimer
+        Rules:
+        - Use cautious radiology language
+        - No definitive diagnosis
+        - Do not mention AI or automation
 
-            Guidelines:
-            - Use cautious, clinical language.
-            - Do NOT make definitive diagnoses.
-            - Do NOT mention AI, model, Grad-CAM, or algorithms.
-            - Assume this is a decision-support tool.
-            - Keep it concise and professional.
-            """
+        Sections:
+        Findings
+        Impression
+        Severity Assessment
+        Recommendation
+        Disclaimer
+        """
         return prompt.strip()
+

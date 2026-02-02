@@ -71,8 +71,6 @@ class ModelTrainerConfig:
     def __init__(self):
         self.artifact_dir: str = os.path.join(ARTIFACT_DIR, TIMESTAMP, "model_training")
 
-        self.trained_bentoml_model_name: str = "xray_model"
-
         self.trained_model_path: str = os.path.join(
             self.artifact_dir, TRAINED_MODEL_NAME
         )
@@ -104,16 +102,3 @@ class ModelEvaluationConfig:
         self.optimizer_params: dict = {"lr": 0.01, "momentum": 0.8}
 
 
-class ModelPusherConfig:
-    def __init__(self):
-        self.bentoml_model_name: str = BENTOML_MODEL_NAME
-
-        self.bentoml_service_name: str = BENTOML_SERVICE_NAME
-
-        self.train_transforms_key: str = TRAIN_TRANSFORMS_KEY
-
-        self.bentoml_ecr_image: str = BENTOML_ECR_URI
-
-        self.aws_region: str = AWS_REGION
-
-        self.aws_account_id: str= AWS_ACCOUNT_ID

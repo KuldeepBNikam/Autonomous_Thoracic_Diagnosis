@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Autonomous Thoracic Diagnosis</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { sans: ['Inter', 'sans-serif'] }
+    }
+  }
+}
+</script>
+
+<style>
+.glass { background: rgba(30,41,59,.7); backdrop-filter: blur(12px); }
+.loader {
+  border: 3px solid #e5e7eb;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  width: 20px; height: 20px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.xray-container { max-height: 260px; overflow: hidden; }
+.xray-container img { max-height: 260px; object-fit: contain; }
+</style>
+</head>
+
+<body class="bg-slate-900 text-slate-200 h-screen flex flex-col overflow-hidden">
+
+<header class="h-16 flex items-center justify-between px-6 border-b border-slate-800">
+  <div class="flex items-center gap-3">
+    <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
+      <i class="fa-solid fa-lungs text-white"></i>
+    </div>
+    <div>
+      <h1 class="font-bold text-white">Autonomous Thoracic Diagnosis</h1>
+      <p class="text-xs text-slate-400">Explainable AI • CNN + Transformer</p>
+    </div>
+  </div>
+  <div class="flex gap-3 text-xs">
+    <button onclick="toggleTheme()" class="px-3 py-1 border border-slate-700 rounded-full">🌗 Theme</button>
+    <button onclick="toggleMode()" id="modeBtn" class="px-3 py-1 border border-slate-700 rounded-full">
+      Doctor Mode
+    </button>
+  </div>
+</header>
+
+<main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 overflow-hidden">
+
+<!-- LEFT -->
+<div class="lg:col-span-4 flex flex-col gap-6 overflow-y-auto">
+
+<div class="glass rounded-xl p-5 border border-slate-700">
+<h2 class="font-semibold mb-2">Upload Chest X-ray</h2>
+
+<input type="file" id="fileInput" accept="image/*" class="hidden"
+       onchange="handleFileSelect(this.files[0])">
+
+<div class="border-2 border-dashed border-slate-600 rounded-lg p-8 text-center cursor-pointer"
+     onclick="fileInput.click()">
+<i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-500 mb-2"></i>
+<p class="text-sm">Click or Drag Image</p>
+</div>
+
+<button onclick="predict()" class="w-full mt-4 py-3 bg-blue-600 rounded-lg font-medium">
+Run Diagnosis
+</button>
+
+<p class="text-xs text-slate-400 mt-2">
+Case ID: <span id="caseId"></span><br>
+Processed at: <span id="timestamp"></span>
+</p>
+</div>
+
+<div class="glass rounded-xl p-5 border border-slate-700 grid grid-rows-2 gap-4">
+
+<div class="relative bg-black/30 border border-slate-700 rounded xray-container">
+<span class="absolute top-2 left-2 text-xs bg-black/60 px-2 py-1 rounded">Input</span>
+<img id="inputImage" class="w-full h-full opacity-40">
+<div id="empty1" class="absolute inset-0 flex items-center justify-center text-xs text-slate-500">
+Waiting for upload
+</div>
+</div>
+
+<div class="relative bg-black/30 border border-slate-700 rounded xray-container">
+<span class="absolute top-2 left-2 text-xs bg-black/60 px-2 py-1 rounded">Grad-CAM</span>
+<img id="gradcamImage" class="w-full h-full hidden">
+<div id="empty2" class="absolute inset-0 flex items-center justify-center text-xs text-slate-500">
+Analysis pending
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- CENTER -->
+<div class="lg:col-span-5 flex flex-col gap-6 overflow-y-auto">
+
+<div class="glass rounded-xl p-6 border border-slate-700">
+<p class="text-xs text-slate-400 uppercase">Prediction</p>
+<h2 id="diagnosis" class="text-3xl font-bold">—</h2>
+
+<div class="mt-4">
+<div class="flex justify-between text-xs mb-1">
+<span>Confidence</span>
+<span id="confidenceText">0%</span>
+</div>
+<div class="h-2 bg-slate-800 rounded overflow-hidden">
+<div id="confidenceFill" class="h-full bg-gradient-to-r from-blue-500 to-emerald-400 w-0 transition-all"></div>
+</div>
+</div>
+
+<div class="mt-4 text-xs text-slate-400">
+AI Pipeline:
+<ul class="space-y-1" id="pipeline">
+<li id="step-pre">⏳ Preprocessing</li>
+<li id="step-cnn">⏳ CNN Feature Extraction</li>
+<li id="step-attn">⏳ Transformer Attention</li>
+<li id="step-cam">⏳ Grad-CAM</li>
+<li id="step-report">⏳ Report Generation</li>
+</ul>
+</div>
+</div>
+
+<div class="glass rounded-xl flex-1 overflow-hidden border border-slate-700">
+<div class="p-4 border-b border-slate-700 flex justify-between">
+<h3 class="font-semibold">AI Medical Report</h3>
+<div id="reportLoader" class="hidden flex items-center gap-2 text-xs text-blue-400">
+<div class="loader"></div> Processing
+</div>
+</div>
+
+<div class="p-6 space-y-4 text-sm">
+<p><b>Findings:</b> <span id="findings"></span></p>
+<p><b>Impression:</b> <span id="impression"></span></p>
+<p><b>Severity:</b> <span id="severity"></span></p>
+<p><b>Recommendation:</b> <span id="recommendation"></span></p>
+<p class="text-xs text-slate-500"><b>Disclaimer:</b> <span id="disclaimer"></span></p>
+
+<div class="flex gap-3 mt-4">
+<button onclick="speakReport()" class="px-3 py-1 bg-blue-600 rounded">🔊 Listen</button>
+<button onclick="downloadPDF()" class="px-3 py-1 bg-slate-800 rounded">Download PDF</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- RIGHT -->
+<div class="lg:col-span-3 glass rounded-xl border border-slate-700 flex flex-col">
+
+<div class="p-4 border-b border-slate-700">
+<h3 class="font-semibold">AI Assistant</h3>
+<p class="text-xs text-slate-400">Ask about report</p>
+</div>
+
+<div id="chatBox" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+
+<div class="p-3 border-t border-slate-700">
+<input id="chatInput"
+ class="w-full bg-slate-900 border border-slate-700 rounded-full px-4 py-3 text-sm"
+ placeholder="Type message..."
+ onkeydown="if(event.key==='Enter') sendChat()">
+</div>
+
+</div>
+</main>
+
+<script>
+let selectedFile=null, reportReady=false, poller=null;
+let isWaiting=false, mode="doctor";
+const steps=["pre","cnn","attn","cam","report"]; let stepIndex=0;
+
+caseId.innerText="XR-"+Math.floor(Math.random()*100000);
+timestamp.innerText=new Date().toLocaleString();
+
+function handleFileSelect(f){
+ selectedFile=f; inputImage.src=URL.createObjectURL(f);
+ empty1.style.display="none";
+}
+
+function advanceStep(){
+ if(stepIndex>=steps.length) return;
+ document.getElementById("step-"+steps[stepIndex]).innerText="✅ "+document.getElementById("step-"+steps[stepIndex]).innerText.slice(2);
+ stepIndex++;
+}
+
+async function predict(){
+ if(!selectedFile) return alert("Upload X-ray");
+ stepIndex=0; steps.forEach(s=>document.getElementById("step-"+s).innerText="⏳ "+document.getElementById("step-"+s).innerText.slice(2));
+ reportLoader.classList.remove("hidden");
+
+ const fd=new FormData(); fd.append("file",selectedFile);
+ const d=await (await fetch("/predict",{method:"POST",body:fd})).json();
+
+ diagnosis.innerText=d.diagnosis;
+ confidenceFill.style.width=Math.round(d.confidence*100)+"%";
+ confidenceText.innerText=Math.round(d.confidence*100)+"%";
+ gradcamImage.src="data:image/png;base64,"+d.gradcam_image_base64;
+ gradcamImage.classList.remove("hidden"); empty2.style.display="none";
+
+ advanceStep();advanceStep();advanceStep();advanceStep();
+ poller=setInterval(fetchReport,2000);
+}
+
+async function fetchReport(){
+ const d=await (await fetch("/report")).json();
+ if(d.status==="ready"){
+  clearInterval(poller); reportReady=true; reportLoader.classList.add("hidden");
+  setSec("Findings","findings",d.report);
+  setSec("Impression","impression",d.report);
+  setSec("Severity Assessment","severity",d.report);
+  setSec("Recommendation","recommendation",d.report);
+  setSec("Disclaimer","disclaimer",d.report);
+  advanceStep();
+ }
+}
+
+function setSec(t,id,txt){
+ const r=new RegExp(t+"\\n([\\s\\S]*?)(?=\\n(?:Findings|Impression|Severity Assessment|Recommendation|Disclaimer)|$)","i");
+ const m=txt.match(r); if(m) document.getElementById(id).innerText=m[1].trim();
+}
+
+function sendChat(){
+ if(!reportReady||isWaiting) return;
+ const msg=chatInput.value.trim(); if(!msg) return;
+ chatInput.value=""; isWaiting=true;
+ chatBox.innerHTML+=`<div class="text-right"><span class="bg-blue-600 px-3 py-2 rounded">${msg}</span></div>`;
+ const prompt=mode==="patient"
+ ?`Explain simply, no jargon:\n${msg}`
+ :`Answer clinically:\n${msg}`;
+ fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+ body:JSON.stringify({messages:[{role:"user",content:prompt}]})})
+ .then(r=>r.json()).then(d=>{
+  chatBox.innerHTML+=`<div><span class="bg-slate-800 px-3 py-2 rounded">${d.reply}</span></div>`;
+  isWaiting=false;
+ });
+}
+
+function speakReport(){
+ if(!reportReady) return;
+ const t=document.getElementById("impression").innerText;
+ const u=new SpeechSynthesisUtterance(t);
+ u.lang="en-US"; speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+
+function toggleMode(){ mode=mode==="doctor"?"patient":"doctor"; modeBtn.innerText=mode==="doctor"?"Doctor Mode":"Patient Mode"; }
+function toggleTheme(){ document.body.classList.toggle("bg-slate-900"); }
+function downloadPDF(){ const {jsPDF}=window.jspdf; const pdf=new jsPDF(); pdf.text("Medical Report",10,10); pdf.save("report.pdf"); }
+</script>
+
+</body>
+</html>

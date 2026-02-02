@@ -1,19 +1,19 @@
-import torch
-import torch.nn as nn
-import timm
+import torch  #main torch library
+import torch.nn as nn # Hepls us build nn
+import timm  #Library of pretrained models
 
 
 class HybridCNNTransformer(nn.Module):
     def __init__(self, num_classes: int = 2):
-        super().__init__()
+        super().__init__()   #sets up pytorch internals
 
         #  CNN Backbone (DenseNet – excellent for X-rays)
         self.cnn = timm.create_model(
-            "densenet121",
+            "densenet121",  # CNN-Excellent for medicle images
             pretrained=True,
             features_only=True
         )
-        cnn_out_channels = self.cnn.feature_info[-1]["num_chs"]
+        cnn_out_channels = self.cnn.feature_info[-1]["num_chs"] # no of channels of last feature map
 
         #  Swin Transformer
         self.swin = timm.create_model(
@@ -58,14 +58,17 @@ class HybridCNNTransformer(nn.Module):
 
 
     def forward(self, x):
-        # CNN path
-        cnn_feats = self.cnn(x)[-1]
-        cnn_feats = self.pool(cnn_feats).flatten(1)
+        # CNN feature maps (DO NOT pool yet)
+        cnn_feature_maps = self.cnn(x)
+        last_conv_map = cnn_feature_maps[-1]   # (B, C, H, W)
 
-        # Swin path
+        # Pool ONLY for classifier
+        cnn_feats = self.pool(last_conv_map).flatten(1)
+
         swin_feats = self.swin(x)
 
-        # Fusion
         fused = torch.cat([cnn_feats, swin_feats], dim=1)
+        logits = self.classifier(fused)
 
-        return self.classifier(fused)
+        return logits, last_conv_map
+

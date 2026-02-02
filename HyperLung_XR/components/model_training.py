@@ -7,8 +7,7 @@ from torch.optim.lr_scheduler import StepLR,_LRScheduler
 from tqdm import tqdm
 from torch.optim import Optimizer
 from torch.nn import Module
-import bentoml
-import joblib
+
 
 from HyperLung_XR.entity.config_entity import ModelTrainerConfig
 from HyperLung_XR.entity.artifact_entity import (
@@ -281,32 +280,8 @@ class ModelTrainer:
 
                 scheduler.step()
 
-            os.makedirs(self.model_trainer_config.artifact_dir, exist_ok=True)
-
+        
             
-
-            train_transforms_obj = joblib.load(
-                self.data_transformation_artifact.train_transform_file_path
-            )
-
-            # Save weights only (PyTorch-native)
-            weights_path = os.path.join(
-                self.model_trainer_config.artifact_dir,
-                "model_state_dict.pt"
-            )
-
-            torch.save(model.state_dict(), weights_path)
-
-            # Register weights + transforms in BentoML
-            bentoml.pytorch.save_model(
-                name=self.model_trainer_config.trained_bentoml_model_name,
-                model=None,  # IMPORTANT: no full model
-                custom_objects={
-                    "state_dict_path": weights_path,
-                    self.model_trainer_config.train_transforms_key: train_transforms_obj
-                },
-            )
-
             model_trainer_artifact: ModelTrainerArtifact = ModelTrainerArtifact(
                 trained_model_path=self.model_trainer_config.trained_model_path,
                 class_mapping=PREDICTION_LABEL,
