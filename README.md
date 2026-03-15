@@ -1,71 +1,69 @@
-Autonomous Thoracic Diagnosis 🫁
+🫁 Autonomous Thoracic Diagnosis
 
-Deep Learning–based system for automatic pneumonia detection from Chest X-ray images with explainable AI visualization and AI-generated medical reports.
+AI-powered system for detecting pneumonia from chest X-ray images using deep learning, explainable AI, and automated report generation.
 
-This project builds an end-to-end diagnostic pipeline combining computer vision, transformers, and LLMs to simulate a simplified AI-assisted radiology workflow.
+The goal of this project is to simulate a mini AI-assisted radiology workflow where a model:
 
-The system classifies X-ray images as:
+Detects pneumonia from X-ray images
+
+Highlights suspicious lung regions
+
+Generates a medical-style diagnostic report
+
+Allows users to interact with an AI medical chatbot
+
+🖼️ Project Preview
+<img src="images/ui-preview.png" width="800">
+
+(Upload X-ray → AI Prediction → Heatmap → Medical Report → Chatbot)
+
+⚙️ What This System Does
+🔍 Pneumonia Detection
+
+The model classifies chest X-ray images into:
 
 Normal
 
 Pneumonia
 
-It also provides:
+using a hybrid deep learning architecture.
 
-Grad-CAM heatmaps for model explainability
+🧠 Hybrid CNN + Transformer Model
+<img src="images/model-architecture.png" width="700">
 
-LLM-generated radiology reports
+The system combines:
 
-Interactive medical chatbot for follow-up queries
+DenseNet (CNN backbone)
+captures fine lung textures and abnormalities.
 
-Why I Built This
+Swin Transformer
+captures global spatial relationships in the X-ray.
 
-Chest X-ray interpretation requires experience and can be time-consuming.
+Both features are fused before the final classification layer.
 
-The goal of this project is to explore how deep learning + explainable AI + LLMs can assist medical professionals by:
+This hybrid design helps the model learn both:
 
-Automatically detecting pneumonia
+local radiological patterns
 
-Highlighting suspicious lung regions
+global lung structure
 
-Generating structured diagnostic reports
+🔥 Explainable AI with Grad-CAM
+<img src="images/gradcam-example.png" width="600">
 
-This project is also part of my effort to build a complete AI product pipeline, not just a model.
+To make the model interpretable, Grad-CAM is used to visualize which regions influenced the prediction.
 
-Project Highlights
-Hybrid Deep Learning Model
+The heatmap highlights areas in the lungs that contributed most to the decision.
 
-A custom CNN + Transformer architecture designed for medical imaging.
+This helps users understand why the model predicted pneumonia.
 
-DenseNet Backbone → captures local lung patterns
+📝 AI Medical Report Generation
+<img src="images/report-example.png" width="700">
 
-Swin Transformer → learns global contextual features
+Once the model makes a prediction, the system automatically generates a structured medical-style report using an LLM.
 
-Fusion Layer → combines CNN + transformer features
+The report includes:
 
-This combination improves the model's ability to capture both:
-
-fine-grained textures
-
-global structural patterns
-
-Explainable AI
-
-Medical AI must be interpretable.
-
-This project integrates Grad-CAM visualization to highlight areas in the X-ray that influenced the model's prediction.
-
-This helps:
-
-build trust in the model
-
-provide visual diagnostic support
-
-AI Medical Report Generation
-
-After prediction, a Large Language Model generates a structured medical report including:
-
-Observation
+Observations
 
 Findings
 
@@ -73,48 +71,52 @@ Impression
 
 Recommendations
 
-The system uses a local LLM via Ollama to keep the pipeline lightweight and offline-capable.
+The LLM runs locally through Ollama, so the system works offline.
 
-Medical Chatbot
+💬 AI Medical Chatbot
+<img src="images/chatbot-preview.png" width="600">
 
-An AI chatbot allows users to ask questions such as:
+Users can ask follow-up questions such as:
 
-What does pneumonia mean?
+What is pneumonia?
 
-What should be the next medical step?
+Is this condition serious?
 
-Is the infection severe?
+What should be the next step?
 
-This is powered by the same LLM backend.
+The chatbot uses the same local LLM backend.
 
-System Architecture
-Chest X-ray Image
-        │
-        ▼
+🏗️ System Architecture
+<img src="images/system-architecture.png" width="800">
+
+Pipeline overview:
+
+X-ray Image
+   │
+   ▼
 Image Preprocessing
 (CLAHE + normalization)
-        │
-        ▼
-Hybrid CNN + Swin Transformer Model
-        │
-        ├── Prediction (Normal / Pneumonia)
-        │
-        ├── Grad-CAM Heatmap
-        │
-        ▼
+   │
+   ▼
+Hybrid CNN + Swin Transformer
+   │
+   ├─ Prediction
+   ├─ Confidence Score
+   ├─ Grad-CAM Heatmap
+   │
+   ▼
 Prediction Data
-        │
-        ▼
+   │
+   ▼
 LLM Medical Report Generator
-        │
-        ▼
-Interactive Web Interface
-        │
-        ├── Diagnosis Result
-        ├── Heatmap Visualization
-        ├── Generated Medical Report
-        └── AI Chatbot
-Tech Stack
+   │
+   ▼
+Frontend Interface
+   ├ Diagnosis Result
+   ├ Heatmap Visualization
+   ├ Generated Report
+   └ AI Chatbot
+🧰 Tech Stack
 Deep Learning
 
 PyTorch
@@ -131,7 +133,7 @@ OpenCV
 
 CLAHE enhancement
 
-AI Explainability
+Explainability
 
 Grad-CAM
 
@@ -155,27 +157,7 @@ CSS
 
 JavaScript
 
-Dataset
-
-Chest X-ray dataset used for training:
-
-~2.3 GB dataset
-
-Two classes:
-
-Normal
-
-Pneumonia
-
-Typical preprocessing includes:
-
-CLAHE contrast enhancement
-
-resizing
-
-normalization
-
-Project Structure
+📂 Project Structure
 Autonomous_Thoracic_Diagnosis
 │
 ├── artifacts/
@@ -186,20 +168,19 @@ Autonomous_Thoracic_Diagnosis
 ├── configs/
 │
 ├── HyperLung_XR/
-│   ├── components/
-│   ├── pipeline/
-│   ├── entity/
-│   ├── utils/
+│   ├── components
+│   ├── pipeline
+│   ├── entity
+│   ├── utils
 │   └── logger
 │
 ├── frontend/
-│
 ├── research/
 │
-├── main.py
 ├── app.py
+├── main.py
 └── requirements.txt
-Installation
+🚀 Running the Project
 
 Clone the repository
 
@@ -214,65 +195,54 @@ conda activate venv
 Install dependencies
 
 pip install -r requirements.txt
-Running the Project
 
-Start backend server
+Run the backend
 
 python app.py
 
-Run frontend
+Run the UI
 
 python main.py
 
-Open browser
+Open in browser
 
 http://localhost:8000
 
-Upload an X-ray image to receive:
+Upload an X-ray image to see the full pipeline in action.
 
-Prediction
+📊 Example Output
 
-Grad-CAM visualization
+The system produces:
 
-AI medical report
+✔ Prediction (Normal / Pneumonia)
+✔ Confidence score
+✔ Grad-CAM heatmap
+✔ AI-generated medical report
+✔ Interactive chatbot
 
-Chatbot assistance
+🔮 Future Improvements
 
-Example Output
+Ideas for improving the system:
 
-System returns:
+Multi-disease classification (TB, COVID-19, fibrosis)
 
-Prediction: Pneumonia
+Better Grad-CAM layer tuning
 
-Confidence Score
-
-Heatmap highlighting infected lung regions
-
-AI-generated diagnostic report
-
-Future Improvements
-
-Planned upgrades:
-
-Multi-disease detection (TB, COVID-19, fibrosis)
-
-Better Grad-CAM layer selection
-
-DICOM support
+DICOM image support
 
 Cloud deployment
 
-Real radiologist-style report templates
+Radiologist-grade reporting templates
 
-Model monitoring and drift detection
+Model monitoring & drift detection
 
-Disclaimer
+⚠️ Disclaimer
 
-This project is for research and educational purposes only.
+This project is intended for educational and research purposes only.
 
-It should not be used for real medical diagnosis without professional supervision.
+It should not be used for real medical diagnosis without professional medical supervision.
 
-Author
+👨‍💻 Author
 
 Kuldeep Nikam
 
